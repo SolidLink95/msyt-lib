@@ -1,5 +1,5 @@
 [package]
-name = "msyt"
+name = "msyt_lib"
 version = "1.1.0"
 authors = ["Kyle Clemens <msyt@kyleclemens.com>"]
 description = "Import and export from MSBT files to MSYT (YAML) files."
