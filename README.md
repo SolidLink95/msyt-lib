@@ -1,5 +1,19 @@
 # msyt
 
+Added in-code struct usage. Example: 
+
+```
+use msyt::converter::MsytFile;
+
+fn main() {
+    let path = "Attachment.msbt".to_string();
+    if let Ok(text) = MsytFile::file_to_text(path.clone()) {
+        println!("{}", text);
+    }
+}
+```
+
+
 A human readable and editable format for `msbt` files.
 
 msyt is a YAML format specification for `msbt` files, allowing easy plaintext reading and writing.
