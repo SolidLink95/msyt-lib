@@ -10,9 +10,10 @@ use model::{Content, Entry, MsbtInfo};
 use roead::byml::Byml;
 use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Cursor, Read, Write};
+use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::{fs, io};
+use std::{fs, io, panic};
 
 
 pub type MsbtResult<T> = std::result::Result<T, failure::Error>;
@@ -26,22 +27,68 @@ pub fn roead_endian_to_byteordered(endian: roead::Endian) -> Endianness {
 pub struct MsytFile {}
 
 impl MsytFile {
-    pub fn text_to_binary_file(text: &str, path: &str, endian: roead::Endian) -> MsbtResult<()> {
+    pub fn text_to_binary_file(text: &str, path: &str, endian: roead::Endian) -> io::Result<()> {
         let encoding = msbt::Encoding::Utf16;
-        let endiannes = roead_endian_to_byteordered(endian);
-        let data = MsytFile::text_to_binary(text, endiannes, encoding).expect("Unable to save to msyt");
+
+        /*let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            MsytFile::text_to_binary(text, endian, Some(encoding)).expect("Unable to save to msyt")
+        }));*/
+        match MsytFile::text_to_binary_safe(text, endian, Some(encoding)) {
+            Ok(data) => {
+                let mut file = OpenOptions::new().write(true).open(&path)?;
+                file.write_all(&data).expect("Error writing data to file");
+                return Ok(());
+            },
+            //_ => {return Err(failure::format_err!("Not msyt file"));}
+            Err(err) => {
+                let e = format!("Unable to convert text to binary file:\n{}\n{}", &path, err);
+                return Err(io::Error::new(io::ErrorKind::InvalidData, e));
+            }
+        }
+
+        //let data = MsytFile::text_to_binary(text, endian, Some(encoding)).expect("Unable to save to msyt");
         //let mut f_handle = fs::File::open(&path).expect(&format!("Failed to open file {}", &path));
-        let mut file = OpenOptions::new().write(true).open(&path)?;
-        file.write_all(&data).expect("Error writing data to file");
-        Ok(())
     }
 
-    pub fn file_to_text(path: String) -> MsbtResult<String> {
-        let mut f_handle = fs::File::open(&path).expect(&format!("Failed to open file {}", &path));
+    pub fn file_to_text(path: String) -> io::Result<String> {
+        let mut f_handle = fs::File::open(&path)?;
         let mut buf: Vec<u8> = Vec::new();
-        f_handle.read_to_end(&mut buf);
-        let text = MsytFile::binary_to_text(buf)?;
-        Ok(text)
+        f_handle.read_to_end(&mut buf)?;
+        match MsytFile::binary_to_text_safe(buf) {
+            Ok(text) => {return Ok(text);},
+            Err(err) => {
+                let e = format!("Unable to convert data from file to text:\n{}\n{}", &path, err);
+                return Err(io::Error::new(io::ErrorKind::InvalidData, e));
+            }
+        }
+        //let text = MsytFile::binary_to_text(buf)?;
+        //Ok(text)
+    }
+
+    pub fn text_to_binary_safe(text: &str, endian: roead::Endian, encoding_type: Option<msbt::Encoding>) -> io::Result<Vec<u8>> {
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            MsytFile::text_to_binary(text, endian, encoding_type)
+        }));
+        if let Ok(bytes_result) = &result {
+            if let Ok(raw_data) = &bytes_result {
+                return Ok(raw_data.to_vec());
+            }
+        }
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "unable to convert text to binary msbt"));
+
+    }
+
+    pub fn binary_to_text_safe(data: Vec<u8>) -> io::Result<String> {
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            MsytFile::binary_to_text(data)
+        }));
+        if let Ok(text_result) = &result {
+            if let Ok(text) = &text_result {
+                return Ok(text.to_string());
+            }
+        }
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "unable to convert data to msbt"));
+
     }
 
     pub fn binary_to_text(data: Vec<u8>) -> MsbtResult<String> {
@@ -49,7 +96,7 @@ impl MsytFile {
             return Err(failure::format_err!("Not msyt file"));
         }
         let cursor = Cursor::new(&data);
-        let reader = BufReader::new(cursor);
+        let reader: BufReader<Cursor<&Vec<u8>>> = BufReader::new(cursor);
         let msbt = Msbt::from_reader(BufReader::new(reader))
             .with_context(|_| format!("Failed to create msbt from reader"))
             .expect(&format!("Failed to create msbt from reader"));
@@ -115,7 +162,10 @@ impl MsytFile {
         Ok(yaml_string)
     }
 
-    pub fn text_to_binary(text: &str, endianness: Endianness, encoding: msbt::Encoding) -> MsbtResult<Vec<u8>> {
+    //pub fn text_to_binary(text: &str, endianness: Endianness, encoding: msbt::Encoding) -> MsbtResult<Vec<u8>> {
+    pub fn text_to_binary(text: &str, endian: roead::Endian, encoding_type: Option<msbt::Encoding>) -> MsbtResult<Vec<u8>> {
+        let encoding = encoding_type.unwrap_or(msbt::Encoding::Utf16);
+        let endianness = roead_endian_to_byteordered(endian);
         let msyt: Msyt =
             serde_yaml::from_str(&text).expect(&format!("Cannot create msyt from string"));
 
