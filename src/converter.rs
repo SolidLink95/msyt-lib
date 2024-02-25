@@ -126,9 +126,13 @@ impl MsytFile {
                     "invalid msbt at : missing string for label {}",
                     label.name(),
                 ));
-            let mut parts = botw::parse_controls(msbt.header(), raw_value)
+            if let Ok(parts) = &mut botw::parse_controls(msbt.header(), raw_value) {
+                all_content.append(parts);
+
+            }
+            /*let mut parts = botw::parse_controls(msbt.header(), raw_value)
                 .expect("Failed to parse controls");
-            all_content.append(&mut parts);
+            all_content.append(&mut parts);*/
             let entry = Entry {
                 attributes: msbt.atr1().and_then(|a| {
                     a.strings()
