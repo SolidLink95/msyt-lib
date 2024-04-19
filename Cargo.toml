@@ -6,15 +6,15 @@ description = "Import and export from MSBT files to MSYT (YAML) files."
 edition = "2018"
 
 [dependencies]
-base64 = "0.10"
-byteordered = "0.4"
-clap = "2"
+base64 = "0.22.0"
+byteordered = "0.6.0"
+clap = "4.5.4"
 failure = "0.1"
-indexmap = { version = "1", features = ["serde", "serde-1"] }
+indexmap = { version = "2.2.6", features = ["serde", "serde-1"] }
 msbt = { git = "https://github.com/lojewalo/msbt-rs" }
 rayon = "1"
 serde = "1"
 serde_derive = "1"
-serde_yaml = "0.8"
+serde_yaml = "0.9.34+deprecated"
 walkdir = "2"
 roead = "0.25.1" # for endian handling
