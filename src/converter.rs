@@ -7,12 +7,9 @@ use msbt::section::Atr1;
 use msbt::Msbt;
 use model::Msyt;
 use model::{Content, Entry, MsbtInfo};
-use roead::byml::Byml;
-use std::fs::{File, OpenOptions};
-use std::io::{BufReader, BufWriter, Cursor, Read, Write};
+use std::fs::OpenOptions;
+use std::io::{BufReader,  Cursor, Read, Write};
 use std::panic::AssertUnwindSafe;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
 use std::{fs, io, panic};
 
 
