@@ -15,16 +15,17 @@ use std::{fs, io, panic};
 
 pub type MsbtResult<T> = std::result::Result<T, failure::Error>;
 
-pub fn roead_endian_to_byteordered(endian: roead::Endian) -> Endianness {
+pub fn str_endian_to_byteordered(endian: &str) -> Endianness {
     match endian {
-        roead::Endian::Big => {return Endianness::Big;},
-        roead::Endian::Little => {return Endianness::Little;},
+        "BE" => {return Endianness::Big;},
+        "LE" => {return Endianness::Little;},
+        _ => {return Endianness::Little;}
     }
 }
 pub struct MsytFile {}
 
 impl MsytFile {
-    pub fn text_to_binary_file(text: &str, path: &str, endian: roead::Endian) -> io::Result<()> {
+    pub fn text_to_binary_file(text: &str, path: &str, endian: String) -> io::Result<()> {
         let encoding = msbt::Encoding::Utf16;
 
         /*let result = panic::catch_unwind(AssertUnwindSafe(|| {
@@ -62,7 +63,7 @@ impl MsytFile {
         //Ok(text)
     }
 
-    pub fn text_to_binary_safe(text: &str, endian: roead::Endian, encoding_type: Option<msbt::Encoding>) -> io::Result<Vec<u8>> {
+    pub fn text_to_binary_safe(text: &str, endian: String, encoding_type: Option<msbt::Encoding>) -> io::Result<Vec<u8>> {
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
             MsytFile::text_to_binary(text, endian, encoding_type)
         }));
@@ -164,9 +165,9 @@ impl MsytFile {
     }
 
     //pub fn text_to_binary(text: &str, endianness: Endianness, encoding: msbt::Encoding) -> MsbtResult<Vec<u8>> {
-    pub fn text_to_binary(text: &str, endian: roead::Endian, encoding_type: Option<msbt::Encoding>) -> MsbtResult<Vec<u8>> {
+    pub fn text_to_binary(text: &str, endian: String, encoding_type: Option<msbt::Encoding>) -> MsbtResult<Vec<u8>> {
         let encoding = encoding_type.unwrap_or(msbt::Encoding::Utf16);
-        let endianness = roead_endian_to_byteordered(endian);
+        let endianness = str_endian_to_byteordered(&endian);
         let msyt: Msyt =
             serde_yaml::from_str(&text).expect(&format!("Cannot create msyt from string"));
 
