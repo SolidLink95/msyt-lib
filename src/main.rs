@@ -25,12 +25,13 @@ fn main() {
 }
 
 fn inner() -> Result<()> {
-  let matches = self::cli::app().get_matches();
+  // let matches = self::cli::app().get_matches();
 
-  match matches.subcommand() {
-    ("export", Some(sub_matches)) => self::subcommand::export(sub_matches),
-    ("import", Some(sub_matches)) => self::subcommand::import(sub_matches),
-    ("create", Some(sub_matches)) => self::subcommand::create(sub_matches),
-    _ => unreachable!("clap allowed an unspecified subcommand"),
-  }
+  // match matches.subcommand() {
+  //   ("export", Some(sub_matches)) => self::subcommand::export(sub_matches),
+  //   ("import", Some(sub_matches)) => self::subcommand::import(sub_matches),
+  //   ("create", Some(sub_matches)) => self::subcommand::create(sub_matches),
+  //   _ => unreachable!("clap allowed an unspecified subcommand"),
+  // }
+  Ok(())
 }

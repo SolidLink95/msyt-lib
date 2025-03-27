@@ -10,7 +10,7 @@ base64 = "0.21.0"
 byteordered = "0.4"
 clap = "4.5.34"
 failure = "0.1.8"
-indexmap = { version = "2.8.0", features = ["serde", "serde-1"] }
+indexmap = { version = "1", features = ["serde", "serde-1"] }
 msbt = { git = "https://github.com/lojewalo/msbt-rs" }
 rayon = "1.10.0"
 serde = "1.0.219"

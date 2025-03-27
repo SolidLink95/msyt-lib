@@ -15,16 +15,20 @@ use crate::{
 };
 
 pub fn import(matches: &ArgMatches) -> Result<()> {
-  let input_paths: Vec<&str> = matches.values_of("paths").expect("required clap arg").collect();
-  let paths: Vec<PathBuf> = if matches.is_present("dir_mode") {
+  let input_paths: Vec<&str> = matches
+    .get_many::<String>("paths")
+    .expect("required clap arg")
+    .map(|s| s.as_str())
+    .collect();
+  let paths: Vec<PathBuf> = if matches.contains_id("dir_mode") {
     find_files(input_paths.iter().map(Clone::clone), "msyt")?
   } else {
     input_paths.iter().map(PathBuf::from).collect()
   };
-  let output_path = matches.value_of("output").map(Path::new);
+  let output_path = matches.get_one::<String>("output").map(Path::new);
 
-  let extension = matches.value_of("extension").expect("clap arg with default");
-  let backup = !matches.is_present("no-backup");
+  let extension = matches.get_one::<String>("extension").expect("clap arg with default");
+  let backup = !matches.contains_id("no-backup");
 
   paths
     .into_par_iter()
