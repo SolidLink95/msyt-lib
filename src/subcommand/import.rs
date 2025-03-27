@@ -46,7 +46,7 @@ pub fn import(matches: &ArgMatches) -> Result<()> {
         if let Some(ref mut lbl1) = msbt.lbl1_mut() {
           if let Some(label) = lbl1.labels_mut().iter_mut().find(|x| x.name() == key) {
             if let Err(()) = label.set_value_raw(new_val) {
-              failure::bail!("could not set raw string at index {}", label.index());
+              anyhow::bail!("could not set raw string at index {}", label.index());
             }
           }
         }
@@ -56,7 +56,7 @@ pub fn import(matches: &ArgMatches) -> Result<()> {
         Some(output) => {
           let stripped_path = match input_paths.iter().flat_map(|input| path.strip_prefix(input)).next() {
             Some(s) => s,
-            None => failure::bail!("no input path works as a prefix on {}", path.to_string_lossy()),
+            None => anyhow::bail!("no input path works as a prefix on {}", path.to_string_lossy()),
           };
           output.join(stripped_path).with_extension(extension)
         },

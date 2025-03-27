@@ -1,6 +1,6 @@
 use crate::{botw, model, util};
 use byteordered::Endianness;
-use failure::ResultExt;
+use anyhow::Context;
 use indexmap::IndexMap;
 use msbt::builder::MsbtBuilder;
 use msbt::section::Atr1;
@@ -13,7 +13,7 @@ use std::panic::AssertUnwindSafe;
 use std::{fs, io, panic};
 
 
-pub type MsbtResult<T> = std::result::Result<T, failure::Error>;
+pub type MsbtResult<T> = std::result::Result<T, anyhow::Error>;
 
 pub fn str_endian_to_byteordered(endian: &str) -> Endianness {
     match endian {
@@ -91,12 +91,12 @@ impl MsytFile {
 
     pub fn binary_to_text(data: Vec<u8>) -> MsbtResult<String> {
         if !data.starts_with(b"MsgStd") {
-            return Err(failure::format_err!("Not msyt file"));
+            return Err(anyhow::format_err!("Not msyt file"));
         }
         let cursor = Cursor::new(&data);
         let reader: BufReader<Cursor<&Vec<u8>>> = BufReader::new(cursor);
         let msbt = Msbt::from_reader(BufReader::new(reader))
-            .with_context(|_| format!("Failed to create msbt from reader"))
+            .context( format!("Failed to create msbt from reader"))
             .expect(&format!("Failed to create msbt from reader"));
 
         let lbl1 = match msbt.lbl1() {
@@ -115,7 +115,7 @@ impl MsytFile {
             let raw_value = label
                 .value_raw()
                 .ok_or_else(|| {
-                    failure::format_err!(
+                    anyhow::format_err!(
                         "invalid msbt at : missing string for label {}",
                         label.name(),
                     )
@@ -160,7 +160,7 @@ impl MsytFile {
         };
 
         let yaml_string =
-            serde_yaml::to_string(&msyt).with_context(|_| "could not serialize yaml to string")?;
+            serde_yaml::to_string(&msyt).context( "could not serialize yaml to string")?;
         Ok(yaml_string)
     }
 

@@ -2,7 +2,7 @@ use crate::Result;
 
 use byteordered::Endian;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use msbt::Header;
 
@@ -18,10 +18,10 @@ pub struct Control201Dynamic {
 
 impl Control201Dynamic {
   pub(crate) fn parse(header: &Header, mut reader: &mut Cursor<&[u8]>) -> Result<Self> {
-    let len = header.endianness().read_u16(&mut reader).with_context(|_| "could not read len")?;
+    let len = header.endianness().read_u16(&mut reader).context( "could not read len")?;
 
     let mut field_2 = vec![0; len as usize];
-    reader.read_exact(&mut field_2).with_context(|_| "could not read field_2")?;
+    reader.read_exact(&mut field_2).context( "could not read field_2")?;
 
     Ok(Control201Dynamic {
       len,
@@ -30,8 +30,8 @@ impl Control201Dynamic {
   }
 
   pub(crate) fn write(&self, header: &Header, mut writer: &mut dyn Write) -> Result<()> {
-    header.endianness().write_u16(&mut writer, self.len).with_context(|_| "could not write len")?;
-    writer.write_all(&self.field_2).with_context(|_| "could not write field_2")?;
+    header.endianness().write_u16(&mut writer, self.len).context( "could not write len")?;
+    writer.write_all(&self.field_2).context( "could not write field_2")?;
 
     Ok(())
   }

@@ -5,7 +5,7 @@ use crate::{
 
 use byteordered::Endian;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use msbt::Header;
 
@@ -38,14 +38,14 @@ impl MainControl for Control2 {
 
     let kind = header.endianness().read_u16(&mut c)?;
     let control = match kind {
-      3 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).with_context(|_| "could not parse control subtype 3")?),
-      4 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).with_context(|_| "could not parse control subtype 4")?),
-      7 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).with_context(|_| "could not parse control subtype 7")?),
-      8 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).with_context(|_| "could not parse control subtype 8")?),
-      10 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).with_context(|_| "could not parse control subtype 10")?),
-      13 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).with_context(|_| "could not parse control subtype 13")?),
+      3 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).context( "could not parse control subtype 3")?),
+      4 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).context( "could not parse control subtype 4")?),
+      7 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).context( "could not parse control subtype 7")?),
+      8 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).context( "could not parse control subtype 8")?),
+      10 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).context( "could not parse control subtype 10")?),
+      13 => Control2::OneField(kind, Control2OneField::parse(header, &mut c).context( "could not parse control subtype 13")?),
       1 | 2 | 9 | 11 | 12 | 14 | 15 | 16 | 17 | 18 | 19 => {
-        let v = Control2Variable::parse(header, &mut c).with_context(|_| "could not parse control subtype 18")?;
+        let v = Control2Variable::parse(header, &mut c).context( "could not parse control subtype 18")?;
         if v.field_3 == 0 {
           return Ok((
             c.position() as usize,
@@ -57,7 +57,7 @@ impl MainControl for Control2 {
         }
         Control2::Variable(kind, v)
       },
-      x => failure::bail!("unknown control 2 type: {}", x),
+      x => anyhow::bail!("unknown control 2 type: {}", x),
     };
 
     Ok((
@@ -70,16 +70,16 @@ impl MainControl for Control2 {
     match *self {
       Control2::OneField(marker, ref control) => {
         header.endianness().write_u16(&mut writer, marker)
-          .with_context(|_| format!("could not write marker for subtype {}", marker))?;
+          .context( format!("could not write marker for subtype {}", marker))?;
         control.write(header, &mut writer)
-          .with_context(|_| format!("could not write subtype {}", marker))
+          .context( format!("could not write subtype {}", marker))
           .map_err(Into::into)
       },
       Control2::Variable(marker, ref control) => {
         header.endianness().write_u16(&mut writer, marker)
-          .with_context(|_| format!("could not write marker for subtype {}", marker))?;
+          .context( format!("could not write marker for subtype {}", marker))?;
         control.write(header, &mut writer)
-          .with_context(|_| format!("could not write subtype {}", marker))
+          .context( format!("could not write subtype {}", marker))
           .map_err(Into::into)
       },
     }

@@ -2,7 +2,7 @@ use crate::Result;
 
 use byteordered::Endian;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use msbt::{Encoding, Header};
 
@@ -19,24 +19,24 @@ pub struct Control2Variable {
 
 impl Control2Variable {
   pub(crate) fn parse(header: &Header, mut reader: &mut Cursor<&[u8]>) -> Result<Self> {
-    let field_1 = header.endianness().read_u16(&mut reader).with_context(|_| "could not read field_1")?;
-    let str_len = header.endianness().read_u16(&mut reader).with_context(|_| "could not read string length")?;
+    let field_1 = header.endianness().read_u16(&mut reader).context( "could not read field_1")?;
+    let str_len = header.endianness().read_u16(&mut reader).context( "could not read string length")?;
 
     let mut str_bytes = vec![0; str_len as usize];
-    reader.read_exact(&mut str_bytes).with_context(|_| "could not read string bytes")?;
+    reader.read_exact(&mut str_bytes).context( "could not read string bytes")?;
 
     let string = match header.encoding() {
       Encoding::Utf16 => {
         let utf16_str: Vec<u16> = str_bytes.chunks(2)
           .map(|bs| header.endianness().read_u16(bs).map_err(Into::into))
           .collect::<Result<_>>()
-          .with_context(|_| "could not read u16s from string bytes")?;
-        String::from_utf16(&utf16_str).with_context(|_| "could not parse utf-16 string")?
+          .context( "could not read u16s from string bytes")?;
+        String::from_utf16(&utf16_str).context( "could not parse utf-16 string")?
       },
-      Encoding::Utf8 => String::from_utf8(str_bytes).with_context(|_| "could not parse utf-8 string")?,
+      Encoding::Utf8 => String::from_utf8(str_bytes).context( "could not parse utf-8 string")?,
     };
 
-    let field_3 = header.endianness().read_u16(&mut reader).with_context(|_| "could not read field_3")?;
+    let field_3 = header.endianness().read_u16(&mut reader).context( "could not read field_3")?;
 
     Ok(Control2Variable {
       field_1,
@@ -46,7 +46,7 @@ impl Control2Variable {
   }
 
   pub(crate) fn write(&self, header: &Header, mut writer: &mut dyn Write) -> Result<()> {
-    header.endianness().write_u16(&mut writer, self.field_1).with_context(|_| "could not write field_1")?;
+    header.endianness().write_u16(&mut writer, self.field_1).context( "could not write field_1")?;
 
     let str_bytes = match header.encoding() {
       Encoding::Utf16 => {
@@ -62,10 +62,10 @@ impl Control2Variable {
     };
 
     header.endianness().write_u16(&mut writer, str_bytes.len() as u16)
-      .with_context(|_| "could not write string bytes length")?;
-    writer.write_all(&str_bytes).with_context(|_| "could not write string bytes")?;
+      .context( "could not write string bytes length")?;
+    writer.write_all(&str_bytes).context( "could not write string bytes")?;
 
-    header.endianness().write_u16(&mut writer, self.field_3).with_context(|_| "could not write field_3")?;
+    header.endianness().write_u16(&mut writer, self.field_3).context( "could not write field_3")?;
 
     Ok(())
   }

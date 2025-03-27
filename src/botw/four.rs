@@ -5,7 +5,7 @@ use crate::{
 
 use byteordered::Endian;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use msbt::Header;
 
@@ -42,13 +42,13 @@ impl MainControl for Control4 {
   fn parse(header: &Header, buf: &[u8]) -> Result<(usize, Control)> {
     let mut c = Cursor::new(buf);
 
-    let kind = header.endianness().read_u16(&mut c).with_context(|_| "could not read control subtype marker")?;
+    let kind = header.endianness().read_u16(&mut c).context( "could not read control subtype marker")?;
     let control = match kind {
-      0 => Control4_0::parse(header, &mut c).with_context(|_| "could not parse control subtype 0")?,
-      1 => Control4_1::parse(header, &mut c).with_context(|_| "could not parse control subtype 1")?,
-      2 => Control4_2::parse(header, &mut c).with_context(|_| "could not parse control subtype 2")?,
-      3 => Control4_3::parse(header, &mut c).with_context(|_| "could not parse control subtype 3")?,
-      x => failure::bail!("unknown control 4 subtype: {}", x),
+      0 => Control4_0::parse(header, &mut c).context( "could not parse control subtype 0")?,
+      1 => Control4_1::parse(header, &mut c).context( "could not parse control subtype 1")?,
+      2 => Control4_2::parse(header, &mut c).context( "could not parse control subtype 2")?,
+      3 => Control4_3::parse(header, &mut c).context( "could not parse control subtype 3")?,
+      x => anyhow::bail!("unknown control 4 subtype: {}", x),
     };
 
     Ok((
@@ -65,9 +65,9 @@ impl MainControl for Control4 {
       Control4::Three(ref c) => c as &dyn SubControl,
     };
     header.endianness().write_u16(&mut writer, sub.marker())
-      .with_context(|_| format!("could not write control subtype marker {}", sub.marker()))?;
+      .context( format!("could not write control subtype marker {}", sub.marker()))?;
     sub.write(header, &mut writer)
-      .with_context(|_| format!("could not write control subtype {}", sub.marker()))
+      .context( format!("could not write control subtype {}", sub.marker()))
       .map_err(Into::into)
   }
 }

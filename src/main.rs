@@ -6,22 +6,22 @@ mod model;
 mod subcommand;
 mod util;
 
-pub type Result<T> = std::result::Result<T, failure::Error>;
+pub type Result<T> = std::result::Result<T, anyhow::Error>;
 
 fn main() {
-  std::process::exit(match inner() {
-    Ok(()) => 0,
-    Err(e) => {
-      eprintln!("an error occurred - see below for details");
-      eprintln!();
-      eprintln!("{}", e);
-      for (indent, err) in e.iter_causes().enumerate() {
-        let indent_str: String = std::iter::repeat("  ").take(indent + 1).collect();
-        eprintln!("{}{}", indent_str, err);
-      }
-      1
-    },
-  });
+  // std::process::exit(match inner() {
+  //   Ok(()) => 0,
+  //   Err(e) => {
+  //     eprintln!("an error occurred - see below for details");
+  //     eprintln!();
+  //     eprintln!("{}", e);
+  //     for (indent, err) in e.iter_causes().enumerate() {
+  //       let indent_str: String = std::iter::repeat("  ").take(indent + 1).collect();
+  //       eprintln!("{}{}", indent_str, err);
+  //     }
+  //     1
+  //   },
+  // });
 }
 
 fn inner() -> Result<()> {

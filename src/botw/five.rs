@@ -5,7 +5,7 @@ use crate::{
 
 use byteordered::Endian;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use msbt::Header;
 
@@ -27,9 +27,9 @@ impl MainControl for Control5 {
   fn parse(header: &Header, buf: &[u8]) -> Result<(usize, Control)> {
     let mut c = Cursor::new(buf);
     let field_1 = header.endianness().read_u16(&mut c)
-      .with_context(|_| "could not read field_1")?;
+      .context( "could not read field_1")?;
     let field_2 = header.endianness().read_u16(&mut c)
-      .with_context(|_| "could not read field_2")?;
+      .context( "could not read field_2")?;
 
     if field_2 == 0 {
       if let Some(length) = PauseLength::from_u16(field_1) {
@@ -51,9 +51,9 @@ impl MainControl for Control5 {
 
   fn write(&self, header: &Header, mut writer: &mut dyn Write) -> Result<()> {
     header.endianness().write_u16(&mut writer, self.field_1)
-      .with_context(|_| "could not write field_1")?;
+      .context( "could not write field_1")?;
     header.endianness().write_u16(&mut writer, self.field_2)
-      .with_context(|_| "could not write field_2")?;
+      .context( "could not write field_2")?;
 
     Ok(())
   }

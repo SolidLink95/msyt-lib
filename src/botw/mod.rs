@@ -3,7 +3,7 @@ use crate::{
   model::Content,
 };
 use byteordered::Endian;
-use failure::ResultExt;
+use anyhow::Context;
 use msbt::Header;
 use serde_derive::{Deserialize, Serialize};
 use std::{
@@ -32,19 +32,19 @@ pub fn parse_controls(header: &Header, s: &[u8]) -> Result<Vec<Content>> {
     }
     if i + 1 < s.len() {
       let chunk = &s[i..=i + 1];
-      let u = header.endianness().read_u16(chunk).with_context(|_| "could not control sequence marker")?;
+      let u = header.endianness().read_u16(chunk).context( "could not control sequence marker")?;
       skip += 1;
       if last_was_marker {
         let body = &s[i + 2..];
         let (read, ctl) = match u {
-          0x00 => self::zero::Control0::parse(header, body).with_context(|_| "could not parse control sequence 0")?,
-          0x01 => self::one::Control1::parse(header, body).with_context(|_| "could not parse control sequence 1")?,
-          0x02 => self::two::Control2::parse(header, body).with_context(|_| "could not parse control sequence 2")?,
-          0x03 => self::three::Control3::parse(header, body).with_context(|_| "could not parse control sequence 3")?,
-          0x04 => self::four::Control4::parse(header, body).with_context(|_| "could not parse control sequence 4")?,
-          0x05 => self::five::Control5::parse(header, body).with_context(|_| "could not parse control sequence 5")?,
-          0xc9 => self::two_hundred_one::Control201::parse(header, body).with_context(|_| "could not parse control sequence 201")?,
-          x => failure::bail!("unknown control sequence: {}", x),
+          0x00 => self::zero::Control0::parse(header, body).context( "could not parse control sequence 0")?,
+          0x01 => self::one::Control1::parse(header, body).context( "could not parse control sequence 1")?,
+          0x02 => self::two::Control2::parse(header, body).context( "could not parse control sequence 2")?,
+          0x03 => self::three::Control3::parse(header, body).context( "could not parse control sequence 3")?,
+          0x04 => self::four::Control4::parse(header, body).context( "could not parse control sequence 4")?,
+          0x05 => self::five::Control5::parse(header, body).context( "could not parse control sequence 5")?,
+          0xc9 => self::two_hundred_one::Control201::parse(header, body).context( "could not parse control sequence 201")?,
+          x => anyhow::bail!("unknown control sequence: {}", x),
         };
         let part = Content::Control(ctl);
         skip = read + 1;
@@ -59,10 +59,10 @@ pub fn parse_controls(header: &Header, s: &[u8]) -> Result<Vec<Content>> {
           let bytes: Vec<u16> = s[text_index..i]
             .chunks(2)
             .map(|x| header.endianness().read_u16(x)
-              .with_context(|_| "could not read bytes")
+              .context( "could not read bytes")
               .map_err(Into::into))
             .collect::<Result<_>>()?;
-          let string = String::from_utf16(&bytes).with_context(|_| "could not parse utf-16 string")?;
+          let string = String::from_utf16(&bytes).context( "could not parse utf-16 string")?;
           parts.push(Content::Text(string));
         }
         text_index = None;
@@ -77,7 +77,7 @@ pub fn parse_controls(header: &Header, s: &[u8]) -> Result<Vec<Content>> {
     let bytes: Vec<u16> = s[text_index..]
       .chunks(2)
       .map(|x| header.endianness().read_u16(x)
-        .with_context(|_| "could not read bytes")
+        .context( "could not read bytes")
         .map_err(Into::into))
       .collect::<Result<_>>()?;
     let from = if bytes[bytes.len() - 1] == 0 {
@@ -85,7 +85,7 @@ pub fn parse_controls(header: &Header, s: &[u8]) -> Result<Vec<Content>> {
     } else {
       &bytes
     };
-    let string = String::from_utf16(&from).with_context(|_| "could not parse utf-16 string")?;
+    let string = String::from_utf16(&from).context( "could not parse utf-16 string")?;
     if !string.is_empty() {
       parts.push(Content::Text(string));
     }
@@ -263,7 +263,7 @@ impl Control {
             field_5: choice_labels[3],
             field_6: [selected_index, cancel_index],
           })),
-          _ => failure::bail!("invalid choice: only 2 to 4 options allowed but got {}", choice_labels.len()),
+          _ => anyhow::bail!("invalid choice: only 2 to 4 options allowed but got {}", choice_labels.len()),
         }
       },
       Control::SingleChoice { label } => Box::new(self::one::Control1::Ten(self::one::ten::Control1_10 {
@@ -303,12 +303,12 @@ impl Control {
   }
 
   pub fn write(&self, header: &Header, mut writer: &mut dyn Write) -> Result<()> {
-    header.endianness().write_u16(&mut writer, 0x0e).with_context(|_| "could not write control marker")?;
+    header.endianness().write_u16(&mut writer, 0x0e).context( "could not write control marker")?;
     let control = self.as_main_control()?;
     header.endianness().write_u16(&mut writer, control.marker())
-      .with_context(|_| format!("could not write control marker for type {}", control.marker()))?;
+      .context( format!("could not write control marker for type {}", control.marker()))?;
     control.write(header, &mut writer)
-      .with_context(|_| format!("could not write control type {}", control.marker()))
+      .context( format!("could not write control type {}", control.marker()))
       .map_err(Into::into)
   }
 }

@@ -1,5 +1,5 @@
 use clap::ArgMatches;
-use failure::ResultExt;
+use anyhow::Context;
 use indexmap::IndexMap;
 use msbt::{Msbt, section::Atr1};
 use rayon::prelude::*;
@@ -32,13 +32,13 @@ pub fn export(matches: &ArgMatches) -> Result<()> {
   paths
     .into_par_iter()
     .map(|path| {
-      let msbt_file = File::open(&path).with_context(|_| format!("could not open {}", path.to_string_lossy()))?;
+      let msbt_file = File::open(&path).context( format!("could not open {}", path.to_string_lossy()))?;
       let msbt = Msbt::from_reader(BufReader::new(msbt_file))
-        .with_context(|_| format!("could not read msbt file at {}", path.to_string_lossy()))?;
+        .context( format!("could not read msbt file at {}", path.to_string_lossy()))?;
 
       let lbl1 = match msbt.lbl1() {
         Some(lbl) => lbl,
-        None => failure::bail!("invalid msbt: missing lbl1: {}", path.to_string_lossy()),
+        None => anyhow::bail!("invalid msbt: missing lbl1: {}", path.to_string_lossy()),
       };
 
       let mut entries = IndexMap::with_capacity(lbl1.labels().len());
@@ -47,13 +47,13 @@ pub fn export(matches: &ArgMatches) -> Result<()> {
         let mut all_content = Vec::new();
 
         let raw_value = label.value_raw()
-          .ok_or_else(|| failure::format_err!(
+          .ok_or_else(|| anyhow::format_err!(
             "invalid msbt at {}: missing string for label {}",
             path.to_string_lossy(),
             label.name(),
           ))?;
         let mut parts = crate::botw::parse_controls(msbt.header(), raw_value)
-          .with_context(|_| format!("could not parse control sequences in {}", path.to_string_lossy()))?;
+          .context( format!("could not parse control sequences in {}", path.to_string_lossy()))?;
         all_content.append(&mut parts);
         let entry = Entry {
           attributes: msbt.atr1()
@@ -86,7 +86,7 @@ pub fn export(matches: &ArgMatches) -> Result<()> {
         Some(output) => {
           let stripped_path = match input_paths.iter().flat_map(|input| path.strip_prefix(input)).next() {
             Some(s) => s,
-            None => failure::bail!("no input path works as a prefix on {}", path.to_string_lossy()),
+            None => anyhow::bail!("no input path works as a prefix on {}", path.to_string_lossy()),
           };
           output.join(stripped_path).with_extension("msyt")
         },
@@ -94,15 +94,15 @@ pub fn export(matches: &ArgMatches) -> Result<()> {
       };
       if let Some(parent) = dest.parent() {
         std::fs::create_dir_all(parent)
-          .with_context(|_| format!("could not create parent directories for {}", parent.to_string_lossy()))?;
+          .context( format!("could not create parent directories for {}", parent.to_string_lossy()))?;
       }
       let mut writer = BufWriter::new(File::create(dest)?);
       serde_yaml::to_writer(
         &mut writer,
         &msyt,
-      ).with_context(|_| "could not write yaml to file")?;
+      ).context( "could not write yaml to file")?;
       // add final newline
-      writer.write_all(b"\n").with_context(|_| "could not write final newline to file")?;
+      writer.write_all(b"\n").context( "could not write final newline to file")?;
 
       Ok(())
     })

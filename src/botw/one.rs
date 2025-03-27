@@ -5,7 +5,7 @@ use crate::{
 
 use byteordered::Endian;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use msbt::Header;
 
@@ -66,18 +66,18 @@ impl MainControl for Control1 {
 
     let kind = header.endianness().read_u16(&mut c)?;
     let control = match kind {
-      0 => Control1_0::parse(header, &mut c).with_context(|_| "could not parse control subtype 0")?,
-      1 => Control1_1::parse(header, &mut c).with_context(|_| "could not parse control subtype 1")?,
-      2 => Control1_2::parse(header, &mut c).with_context(|_| "could not parse control subtype 2")?,
-      3 => Control1_3::parse(header, &mut c).with_context(|_| "could not parse control subtype 3")?,
-      4 => Control1_4::parse(header, &mut c).with_context(|_| "could not parse control subtype 4")?,
-      5 => Control1_5::parse(header, &mut c).with_context(|_| "could not parse control subtype 5")?,
-      6 => Control1_6::parse(header, &mut c).with_context(|_| "could not parse control subtype 6")?,
-      7 => Control1_7::parse(header, &mut c).with_context(|_| "could not parse control subtype 7")?,
-      8 => Control1_8::parse(header, &mut c).with_context(|_| "could not parse control subtype 8")?,
-      9 => Control1_9::parse(header, &mut c).with_context(|_| "could not parse control subtype 9")?,
-      10 => Control1_10::parse(header, &mut c).with_context(|_| "could not parse control subtype 10")?,
-      x => failure::bail!("unknown control 1 type: {}", x),
+      0 => Control1_0::parse(header, &mut c).context( "could not parse control subtype 0")?,
+      1 => Control1_1::parse(header, &mut c).context( "could not parse control subtype 1")?,
+      2 => Control1_2::parse(header, &mut c).context( "could not parse control subtype 2")?,
+      3 => Control1_3::parse(header, &mut c).context( "could not parse control subtype 3")?,
+      4 => Control1_4::parse(header, &mut c).context( "could not parse control subtype 4")?,
+      5 => Control1_5::parse(header, &mut c).context( "could not parse control subtype 5")?,
+      6 => Control1_6::parse(header, &mut c).context( "could not parse control subtype 6")?,
+      7 => Control1_7::parse(header, &mut c).context( "could not parse control subtype 7")?,
+      8 => Control1_8::parse(header, &mut c).context( "could not parse control subtype 8")?,
+      9 => Control1_9::parse(header, &mut c).context( "could not parse control subtype 9")?,
+      10 => Control1_10::parse(header, &mut c).context( "could not parse control subtype 10")?,
+      x => anyhow::bail!("unknown control 1 type: {}", x),
     };
 
     Ok((
@@ -102,9 +102,9 @@ impl MainControl for Control1 {
     };
 
     header.endianness().write_u16(&mut writer, sub.marker())
-      .with_context(|_| format!("could not write marker for subtype {}", sub.marker()))?;
+      .context( format!("could not write marker for subtype {}", sub.marker()))?;
     sub.write(header, &mut writer)
-      .with_context(|_| format!("could not write subtype {}", sub.marker()))
+      .context( format!("could not write subtype {}", sub.marker()))
       .map_err(Into::into)
   }
 }

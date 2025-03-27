@@ -5,7 +5,7 @@ use crate::{
 
 use byteordered::Endian;
 
-use failure::ResultExt;
+use anyhow::Context;
 
 use msbt::Header;
 
@@ -41,11 +41,11 @@ impl MainControl for Control201 {
 
     let kind = header.endianness().read_u16(&mut c)?;
     let control = match kind {
-      0 => Control201::Dynamic(kind, Control201Dynamic::parse(header, &mut c).with_context(|_| "could not parse control subtype dynamic")?),
-      1 | 2 | 3 | 4 => Control201::OneField(kind, Control201OneField::parse(header, &mut c).with_context(|_| "could not parse control two fields")?),
+      0 => Control201::Dynamic(kind, Control201Dynamic::parse(header, &mut c).context( "could not parse control subtype dynamic")?),
+      1 | 2 | 3 | 4 => Control201::OneField(kind, Control201OneField::parse(header, &mut c).context( "could not parse control two fields")?),
       5 | 6 | 7 | 8 => {
         let localisation_kind = Localisation::from_u16(kind);
-        let sub = Control201Localisation::parse(header, &mut c).with_context(|_| "could not parse control subtype localisation")?;
+        let sub = Control201Localisation::parse(header, &mut c).context( "could not parse control subtype localisation")?;
         return Ok((
           c.position() as usize,
           Control::Localisation {
@@ -54,7 +54,7 @@ impl MainControl for Control201 {
           },
         ));
       },
-      x => failure::bail!("unknown control 201 type: {}", x),
+      x => anyhow::bail!("unknown control 201 type: {}", x),
     };
 
     Ok((
@@ -67,23 +67,23 @@ impl MainControl for Control201 {
     match *self {
       Control201::Dynamic(marker, ref control) => {
         header.endianness().write_u16(&mut writer, marker)
-          .with_context(|_| format!("could not write marker for subtype {}", marker))?;
+          .context( format!("could not write marker for subtype {}", marker))?;
         control.write(header, &mut writer)
-          .with_context(|_| format!("could not write subtype {}", marker))
+          .context( format!("could not write subtype {}", marker))
           .map_err(Into::into)
       },
       Control201::OneField(marker, ref control) => {
         header.endianness().write_u16(&mut writer, marker)
-          .with_context(|_| format!("could not write marker for subtype {}", marker))?;
+          .context( format!("could not write marker for subtype {}", marker))?;
         control.write(header, &mut writer)
-          .with_context(|_| format!("could not write subtype {}", marker))
+          .context( format!("could not write subtype {}", marker))
           .map_err(Into::into)
       },
       Control201::Localisation(kind, ref c) => {
         header.endianness().write_u16(&mut writer, kind.as_u16())
-          .with_context(|_| format!("could not write control subtype marker {}", kind.as_u16()))?;
+          .context( format!("could not write control subtype marker {}", kind.as_u16()))?;
         c.write(header, &mut writer)
-          .with_context(|_| format!("could not write control subtype {}", kind.as_u16()))
+          .context( format!("could not write control subtype {}", kind.as_u16()))
           .map_err(Into::into)
       },
     }

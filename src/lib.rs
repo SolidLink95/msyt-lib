@@ -4,4 +4,4 @@ pub mod model;
 pub mod util;
 pub mod converter;
 
-pub type Result<T> = std::result::Result<T, failure::Error>;
+pub type Result<T> = std::result::Result<T, anyhow::Error>;
